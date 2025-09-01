@@ -1,0 +1,43 @@
+exports.config = {
+  hostname: 'localhost',
+  port: 4723,
+  path: '/',
+
+  specs: ['./tests/android/*.spec.js'],
+  maxInstances: 1,
+
+  // ⬇️ Make WDIO more patient
+  waitforTimeout: 30000,
+  connectionRetryTimeout: 180000,   // 3 min
+  connectionRetryCount: 2,
+  mochaOpts: { timeout: 180000 },   // 3 min test-level timeout
+
+  capabilities: [{
+    platformName: 'Android',
+    'appium:automationName': 'UiAutomator2',
+    'appium:udid': 'host.docker.internal:5555',
+
+    // ✅ Engage app package/activity you found
+    'appium:appPackage': 'com.fieldpulse.engage',
+    'appium:appActivity': 'com.fieldpulse.engage.MainActivity',
+    'appium:appWaitActivity': '*',
+
+    // ❌ TEMP: turn off auto-webview & chromedriver download to avoid startup timeout
+    // 'appium:autoWebview': true,
+    // 'appium:autoWebviewTimeout': 20000,
+    // 'appium:chromedriverAutodownload': true,
+
+    // ✅ Stability helpers
+    'appium:noReset': false,
+    'appium:autoGrantPermissions': true,
+    'appium:newCommandTimeout': 120,
+    'appium:uiautomator2ServerInstallTimeout': 120000,
+    'appium:uiautomator2ServerLaunchTimeout': 120000,
+    'appium:adbExecTimeout': 120000
+  }],
+
+  logLevel: 'info',
+  framework: 'mocha',
+  reporters: ['spec']
+};
+

@@ -1,0 +1,63 @@
+describe('Engage Login (valid)', () => {
+  const PKG = 'com.fieldpulse.engage';
+  const USER = process.env.ENGAGE_USER || 'manuk+9@fieldpulse.com';
+  const PASS = process.env.ENGAGE_PASS || 'qwerty';
+
+  const Sel = {
+    email: 'android=new UiSelector().className("android.widget.EditText").instance(0)',
+    pass:  'android=new UiSelector().className("android.widget.EditText").instance(1)',
+    login: '~Login' // content-desc="Login"
+  };
+
+  async function tapAnyVisibleButtonOnce() {
+    try {
+      const btn = await $('android=new UiSelector().classNameMatches(".*Button")');
+      if (await btn.isExisting()) {
+        await btn.click().catch(()=>{});
+      }
+    } catch {}
+  }
+
+  before(async () => {
+    await driver.terminateApp(PKG).catch(() => {});
+    await driver.activateApp(PKG);
+    await $(Sel.email).waitForExist({ timeout: 30000 });
+  });
+
+  it('logs in with valid credentials', async () => {
+    await (await $(Sel.email)).setValue(USER);
+    await (await $(Sel.pass)).setValue(PASS);
+    try { await driver.hideKeyboard(); } catch {}
+
+    const loginBtn = await $(Sel.login);
+    const activityBefore = await driver.getCurrentActivity().catch(() => '');
+
+    await loginBtn.click();
+
+    // maliit na loop to dismiss possible post-login prompts
+    for (let i = 0; i < 3; i++) {
+      await tapAnyVisibleButtonOnce();
+      await driver.pause(200);
+    }
+
+    // ✅ Robust success condition:
+    // either nawala na ang Login button OR nagbago ang current Activity
+    await browser.waitUntil(async () => {
+      const stillVisible = await loginBtn.isDisplayed().catch(() => false);
+      if (!stillVisible) return true;
+
+      const activityNow = await driver.getCurrentActivity().catch(() => '');
+      return activityNow && activityNow !== activityBefore;
+    }, {
+      timeout: 40000,
+      interval: 500,
+      timeoutMsg: 'Login did not navigate away from the login screen'
+    });
+
+    // (Optional sanity) Siguraduhing wala na yung dalawang EditText ng login
+    const inputs = await $$('android=new UiSelector().className("android.widget.EditText")');
+    if (inputs.length > 1) {
+      throw new Error('Still on login form (two EditText fields detected)');
+    }
+  });
+});
